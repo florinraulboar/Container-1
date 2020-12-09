@@ -1,0 +1,156 @@
+<#
+.SYNOPSIS
+  <Overview of script>
+.DESCRIPTION
+  <Brief description of script>
+.PARAMETER <Parameter_Name>
+    <Brief description of parameter input required. Repeat this attribute if required>
+.INPUTS
+  <Inputs if any, otherwise state None>
+.OUTPUTS
+  <Outputs if any, otherwise state None - example: Log file stored in C:\Windows\Temp\<name>.log>
+.NOTES
+  Version:        1.0
+  Author:         <Name>
+  Creation Date:  <Date>
+  Purpose/Change: Initial script development
+  
+.EXAMPLE
+  <Example goes here. Repeat this attribute for more than one example>
+#>
+
+#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+
+#Set Error Action to Silently Continue
+#$ErrorActionPreference = "SilentlyContinue"
+
+param(
+    [CmdletBinding()]
+     [Parameter(
+        Mandatory=$True, 
+        Position = 0,
+        HelpMessage="Enter the name of your Office 365 organization, example: contosotoycompany")]
+     [ValidateNotNullorEmpty()]
+     [string]$orgName)
+
+
+#Set green color for output
+function OutputInGreen
+{
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Green "$Text`n"
+}
+
+#Set red color for output
+function OutputInRed
+{
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Red "$Text`n"
+}
+
+#Set yellow color for output
+function OutputInYellow
+{
+
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Yellow "$Text`n"
+}
+
+#----------------------------------------------------------[Declarations]----------------------------------------------------------
+
+#Script Version
+#$sScriptVersion = "1.0"
+
+#Log File Info
+
+#Check if path already exists
+OutputInYellow "Creating path C:\Users\Public\DataLossPrevention_LogFiles"
+If(Test-Path -Path 'C:\Users\Public\DataLossPrevention_LogFiles'){OutputInYellow "Path already exists!"}
+Else {New-Item -Path 'C:\Users\Public\DataLossPrevention_LogFiles' -ItemType Directory;
+      OutputInGreen "Created!"} #Create a folder for SharePoint's LogFiles
+
+#Check if files already exists
+# If file doesn't exists => create file
+
+#1.LogFile_DisallowInfectedFileDownload.txt
+OutputInYellow "Creating LogFile_DataLossPrevention.txt"
+$fileToCheck = "C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt"
+if(Test-Path $fileToCheck -PathType leaf) {OutputInYellow "File already exists!"}
+else {New-Item C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt; 
+      Set-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value 'LogFile Informations--------';  
+      OutputInGreen "Created!"} 
+
+
+#-----------------------------------------------------------[Functions]------------------------------------------------------------
+
+
+
+#Connection for the DLP-Compliance tenant
+Function Connect-Tenant{
+    Connect-IPPSSession 
+    OutputInGreen "Connected!"
+}
+
+Function Dlp-policy {
+#Creating a Dlp-policy with all locations in Teams, Sharepoint, OneDrive, Exchange.
+ [Parameter(
+        Mandatory=$FALSE, 
+        Position = 0,
+        HelpMessage="Enter the name of your Office 365 organization, example: contosotoycompany")]
+     [ValidateNotNullorEmpty()]
+     [string]$DLP_NAME = "Bambi" #SET HERE
+
+New-DlpCompliancePolicy -Name $DLP_NAME -TeamsLocation All -SharePointLocation All -OneDriveLocation All -ExchangeLocation All
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the policy $DLP_NAME => [$(Get-Date)])"
+
+# Creating compliance rules
+New-DlpComplianceRule -Name "Credit Card Rule $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="Credit Card Number"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Credit Card Number)." -NotifyUser LastModifier 
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule Credit Card Rule for $DLP_NAME policy=> [$(Get-Date)])"
+New-DlpComplianceRule -Name "EU Social Security Numbers Rule $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="EU Social Security Number (SSN) or Equivalent ID"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Social Security Number (SSN) or Equivalent ID)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule EU Social Security Numbers Rule for $DLP_NAME policy => [$(Get-Date)])"
+New-DlpComplianceRule -Name "U.S. Social Security Numbers Rule $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="U.S. Social Security Number (SSN)"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Social Security Number (SSN)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule U.S. Social Security Numbers Rule for $DLP_NAME policy=> [$(Get-Date)])"
+New-DlpComplianceRule -Name "U.S. Bank Account Number $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="U.S. Bank Account Number"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Bank Account Number)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule U.S. Bank Account Number for $DLP_NAME policy => [$(Get-Date)])"
+New-DlpComplianceRule -Name "Japan Bank Account Number $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="Japan Bank Account Number"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Bank Account Number)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule Japan Bank Account Number for $DLP_NAME policy => [$(Get-Date)])"
+New-DlpComplianceRule -Name "Canada Bank Account Number $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="Canada Bank Account Number"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Bank Account Number)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule Canada Bank Account Number for $DLP_NAME policy => [$(Get-Date)])"
+New-DlpComplianceRule -Name "Israel Bank Account Number $DLP_NAME" -Policy $DLP_NAME -ContentContainsSensitiveInformation @{Name="Israel Bank Account Number"} -BlockAccess $True -NotifyEmailCustomText "Your email message conflicts with a policy in your organization. Issues: this email contains sensitive informations (Bank Account Number)." -NotifyUser LastModifier
+Add-Content -Path 'C:\Users\Public\DataLossPrevention_LogFiles\LogFile_DataLossPrevention.txt' -Value "$orgName => created the rule Israel Bank Account Number for $DLP_NAME policy => [$(Get-Date)])"
+
+ }
+
+#-----------------------------------------------------------[Execution]------------------------------------------------------------
+
+#-ScriptVersion $sScriptVersion
+
+try{ 
+    Connect-Tenant
+}
+catch { 
+    write-host $_.Exception.Message
+}
+
+try{ 
+    Dlp-policy
+}
+catch { 
+    write-host $_.Exception.Message
+}
+#BDSCloudsecurity 
