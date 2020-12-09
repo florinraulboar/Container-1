@@ -1,0 +1,236 @@
+<#
+.SYNOPSIS
+  <Overview of script>
+.DESCRIPTION
+  <Brief description of script>
+.PARAMETER <Parameter_Name>
+    <Brief description of parameter input required. Repeat this attribute if required>
+.INPUTS
+  <Inputs if any, otherwise state None>
+.OUTPUTS
+  <Outputs if any, otherwise state None - example: Log file stored in C:\Windows\Temp\<name>.log>
+.NOTES
+  Version:        1.0
+  Author:         <Name>
+  Creation Date:  <Date>
+  Purpose/Change: Initial script development
+  
+.EXAMPLE
+  <Example goes here. Repeat this attribute for more than one example>
+#>
+
+#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+
+#Set Error Action to Silently Continue
+#$ErrorActionPreference = "SilentlyContinue"
+
+param(
+    [CmdletBinding()]
+     [Parameter(
+        Mandatory=$True, 
+        Position = 0,
+        HelpMessage="Enter the name of your Office 365 organization, example: contosotoycompany")]
+     [ValidateNotNullorEmpty()]
+     [string]$orgName,
+
+     [Parameter(
+        Mandatory=$False, 
+        Position = 1,
+        HelpMessage="Do you want to activate DisallowInfectedFileDownload?, exemple: True / False")]
+     [ValidateNotNullorEmpty()]
+     [bool]$Activate_DisallowDownload = $True, # Set here
+
+     [Parameter(
+        Mandatory=$False, 
+        Position = 2,
+        HelpMessage="Do you want to activate BccExternalSharingInvitations ?, exemple: True / False")]
+     [ValidateNotNullorEmpty()]
+     [bool]$Activate_SharingInvitations = $True,  # Set here
+
+     [Parameter(
+        Mandatory=$False, 
+        Position = 3,
+        HelpMessage="Enter mailbox, ex: admin@asdsd.com")]
+     [ValidateNotNullorEmpty()]
+     [string] $Mailbox_List = "admin@BDSCloudSecurity.com", #Set here
+
+     [Parameter(
+        Mandatory=$False, 
+        Position = 4,
+        HelpMessage="Enter the number of days to expire, ex: 10")]
+     [ValidateNotNullorEmpty()]
+     [int]$Days_to_expire = 30 #Set here
+      )
+
+#Set green color for output
+function OutputInGreen
+{
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Green "$Text`n"
+}
+
+#Set red color for output
+function OutputInRed
+{
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Red "$Text`n"
+}
+
+#Set yellow color for output
+function OutputInYellow
+{
+
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string] $Text
+    )
+
+    Write-Host -ForegroundColor Yellow "$Text`n"
+}
+
+#----------------------------------------------------------[Declarations]----------------------------------------------------------
+
+#Script Version
+#$sScriptVersion = "1.0"
+
+#Log File Info
+
+#Check if path already exists
+OutputInYellow "Creating path C:\Users\Public\SharePoint_LogFiles"
+If(Test-Path -Path 'C:\Users\Public\SharePoint_LogFiles'){OutputInYellow "Path already exists!"}
+Else {New-Item -Path 'C:\Users\Public\SharePoint_LogFiles' -ItemType Directory;
+      OutputInGreen "Created!"} #Create a folder for SharePoint's LogFiles
+
+#Check if files already exists
+# If file doesn't exists => create file
+
+#1.LogFile_DisallowInfectedFileDownload.txt
+OutputInYellow "Creating LogFile_DisallowInfectedFileDownload.txt"
+$fileToCheck = "C:\Users\Public\SharePoint_LogFiles\LogFile_DisallowInfectedFileDownload.txt"
+if(Test-Path $fileToCheck -PathType leaf) {OutputInYellow "File already exists!"}
+else {New-Item C:\Users\Public\SharePoint_LogFiles\LogFile_DisallowInfectedFileDownload.txt; 
+      Set-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_DisallowInfectedFileDownload.txt' -Value 'LogFile Informations--------';  
+      OutputInGreen "Created!"} 
+
+
+#2.LogFile_MonitorExternalSharingInvitations.txt
+OutputInYellow "Creating LogFile_MonitorExternalSharingInvitations.txt"
+$fileToCheck = "C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt"
+if(Test-Path $fileToCheck -PathType leaf) {OutputInYellow "File already exists!"}
+else {New-Item C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt; 
+      Set-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt' -Value 'LogFile Informations--------';  
+      OutputInGreen "Created!"} # If file doesn't exist => create file
+
+
+#3.SetExpirationForSharePointOnlineAnonymousLinks.txt
+OutputInYellow "Creating LogFile_SetExpirationForSharePointOnlineAnonymousLinks.txt"
+$fileToCheck = "C:\Users\Public\SharePoint_LogFiles\LogFile_SetExpirationForSharePointOnlineAnonymousLinks.txt"
+if(Test-Path $fileToCheck -PathType leaf) {OutputInYellow "File already exists!"}
+else {New-Item C:\Users\Public\SharePoint_LogFiles\LogFile_SetExpirationForSharePointOnlineAnonymousLinks.txt; 
+      Set-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt' -Value 'LogFile Informations--------';
+      OutputInGreen "Created!"} # If file doesn't exist => create file
+
+
+
+#-----------------------------------------------------------[Functions]------------------------------------------------------------
+
+
+
+
+#Connection for the SharePoint tenant
+Function Connect-Tenant{
+    $siteUrl = "https://$orgName-admin.sharepoint.com"
+    Write-Host "$(Get-Date) connect to tenant admin $($siteUrl)"
+    Connect-SPOService -Url $siteUrl 
+    OutputInGreen "Connected!"
+}
+
+#Set DisallowInfectedFileDownload
+Function DisallowInfectedFileDownload ($Activate_DisallowDownload,$Mailbox_List){
+  OutputInYellow "You have chosen to set a policy for SharePointOnline named DisallowInfectedFileDownload..."
+  if ($Activate_DisallowDownload -eq $True){Set-SPOTenant -DisallowInfectedFileDownload $True
+      Add-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_DisallowInfectedFileDownload.txt' -Value "$orgName => set DisallowInfectedFileDownload -$Activate_DisallowDownload => [$(Get-Date)])"
+      OutputInGreen "Done! [$(Get-Date)]"}
+  elseif ($Activate_DisallowDownload -eq $False){Set-SPOTenant -DisallowInfectedFileDownload $False
+      Add-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_DisallowInfectedFileDownload.txt' -Value "$orgName => set DisallowInfectedFileDownload -$Activate_DisallowDownload => [$(Get-Date)])"
+      OutputInGreen "Done! [$(Get-Date)]"}
+  else {OutputInRed "***No matches!***"} 
+}
+
+#Set MonitorExternalSharingInvitations
+Function MonitorExternalSharingInvitations (){
+    Param(
+    [CmdletBinding()]
+        [Parameter(
+            Mandatory=$False, 
+            Position = 2,
+            HelpMessage="Do you want to activate BccExternalSharingInvitations ?, exemple: True / False")]
+         [ValidateNotNullorEmpty()]
+         [bool]$Activate_SharingInvitations = $True,  # Set here
+    
+         [Parameter(
+            Mandatory=$False, 
+            Position = 3,
+            HelpMessage="Enter mailbox, ex: admin@asdsd.com")]
+         [ValidateNotNullorEmpty()]
+         [string] $Mailbox_List = "admin@BDSCloudSecurity.com" #Set here
+     )
+
+  OutputInYellow "You have chosen to set a policy for SharePointOnline named MonitorExternalSharingInvitations..."
+  if ($Activate_SharingInvitations -eq $True){
+  Set-SPOTenant -BccExternalSharingInvitations $True -BccExternalSharingInvitationsList $Mailbox_List
+  Add-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt' -Value "$orgName => set MonitorExternalSharingInvitations -$Activate_SharingInvitations; mailbox: $Mailbox_List => [$(Get-Date)]"
+  OutputInGreen "Done! [$(Get-Date)]"}
+  elseif ($Activate_SharingInvitations -eq $False){
+  Set-SPOTenant -BccExternalSharingInvitations $False -BccExternalSharingInvitationsList "none";
+  Add-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt' -Value "$orgName => set MonitorExternalSharingInvitations -$Activate_SharingInvitations; mailbox: none => [$(Get-Date)]"
+  OutputInGreen "Done! [$(Get-Date)]"}
+  else {OutputInRed "***No matches!***"}
+}
+
+#Get-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_MonitorExternalSharingInvitations.txt'
+
+#Set SetExpirationForSharePointOnlineAnonymousLinks
+Function SetExpiration($Days_to_expire){
+  OutputInYellow "You have chosen to set a policy for SharePointOnline named SetExpirationForSharePointOnlineAnonymousLinks..."
+  Set-SPOTenant -SharingCapability ExternalUserAndGuestSharing -RequireAnonymousLinksExpireInDays $Days_to_expire;
+  Add-Content -Path 'C:\Users\Public\SharePoint_LogFiles\LogFile_SetExpirationForSharePointOnlineAnonymousLinks.txt' -Value "$orgName => Set days to expire to $Days_to_expire => [$(Get-Date)]";
+  OutputInGreen "Done! [$(Get-Date)]"
+}
+
+
+Function SharePointPolicy{
+  DisallowInfectedFileDownload($Activate_DisallowDownload) 
+  MonitorExternalSharingInvitations
+  SetExpiration($Days_to_expire)
+  }
+
+#-----------------------------------------------------------[Execution]------------------------------------------------------------
+
+#-ScriptVersion $sScriptVersion
+
+try{ 
+    Connect-Tenant
+}
+catch { 
+    write-host $_.Exception.Message
+}
+
+try{ 
+    SharePointPolicy
+}
+catch { 
+    write-host $_.Exception.Message
+}
+#BDSCloudsecurity
